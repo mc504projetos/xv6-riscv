@@ -139,9 +139,9 @@ UPROGS=\
 	$U/_grind\
 	$U/_wc\
 	$U/_zombie\
-	$U/_cpu_bound\
-    $U/_io_bound\
-    $U/_run_experiment\
+	_cpu_bound\
+    _io_bound\
+    _run_experiment\
 
 
 fs.img: mkfs/mkfs README $(UPROGS)
