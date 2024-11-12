@@ -1,15 +1,29 @@
 // cpu_bound.c - CPU-bound simulation for xv6
-#include "../kernel/types.h"
-#include "../kernel/stat.h"
-#include "../user/user.h"
+#include "kernel/types.h"
+#include "kernel/stat.h"
+#include "user/user.h"
 
 #define N_VERTICES 100
 #define INFINITY 9999
 
+// Define the seed for our simple pseudo-random number generator
+static unsigned int seed = 1;
+
+// Set the seed for random number generation
+void srand(unsigned int s) {
+    seed = s;
+}
+
+// Generate a pseudo-random number
+int rand() {
+    seed = seed * 1664525 + 1013904223;
+    return (seed & 0x7FFFFFFF);  // Return a non-negative integer
+}
+
 void initialize_graph(int graph[N_VERTICES][N_VERTICES]) {
     for (int i = 0; i < N_VERTICES; i++) {
         for (int j = 0; j < N_VERTICES; j++) {
-            graph[i][j] = (i != j) ? (random() % 20 + 1) : INFINITY;
+            graph[i][j] = (i != j) ? (rand() % 20 + 1) : INFINITY;
         }
     }
 }

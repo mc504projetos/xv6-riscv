@@ -1,8 +1,8 @@
 // io_bound.c - IO-bound simulation for xv6
-#include "../kernel/types.h"
-#include "../kernel/stat.h"
-#include "../kernel/fcntl.h"
-#include "../user/user.h"
+#include "kernel/types.h"
+#include "kernel/stat.h"
+#include "kernel/fcntl.h"
+#include "user/user.h"
 
 #define LINE_COUNT 100
 #define LINE_LENGTH 100
