@@ -7,9 +7,23 @@
 #define LINE_COUNT 100
 #define LINE_LENGTH 100
 
+// Define the seed for our simple pseudo-random number generator
+static unsigned int seed = 1;
+
+// Set the seed for random number generation
+void srand(unsigned int s) {
+    seed = s;
+}
+
+// Generate a pseudo-random number
+int rand() {
+    seed = seed * 1664525 + 1013904223;
+    return (seed & 0x7FFFFFFF);  // Return a non-negative integer
+}
+
 void generate_random_line(char *line) {
     for (int i = 0; i < LINE_LENGTH - 1; i++) {
-        line[i] = 'A' + (random() % 26);
+        line[i] = 'A' + (rand() % 26);
     }
     line[LINE_LENGTH - 1] = '\n';
 }
@@ -17,7 +31,7 @@ void generate_random_line(char *line) {
 int main() {
     int fd = open("tempfile.txt", O_CREATE | O_WRONLY);
     if (fd < 0) {
-        printf(1, "Error: Could not open file for writing\n");
+        printf("Error: Could not open file for writing\n");
         exit(0);
     }
 

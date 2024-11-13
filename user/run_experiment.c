@@ -54,20 +54,34 @@ Metrics collect_metrics(int cpu_count, int io_count) {
     return metrics;
 }
 
+// Define the seed for our simple pseudo-random number generator
+static unsigned int seed = 1;
+
+// Set the seed for random number generation
+void srand(unsigned int s) {
+    seed = s;
+}
+
+// Generate a pseudo-random number
+int rand() {
+    seed = seed * 1664525 + 1013904223;
+    return (seed & 0x7FFFFFFF);  // Return a non-negative integer
+}
+
 void run_experiment() {
     for (int round = 0; round < NUM_ROUNDS; round++) {
-        int cpu_count = 6 + random() % 9;
+        int cpu_count = 6 + rand() % 9;
         int io_count = 20 - cpu_count;
 
-        printf(1, "Starting round %d: CPU-bound=%d, IO-bound=%d\n", round + 1, cpu_count, io_count);
+        printf("Starting round %d: CPU-bound=%d, IO-bound=%d\n", round + 1, cpu_count, io_count);
 
         Metrics metrics = collect_metrics(cpu_count, io_count);
 
-        printf(1, "Round %d Results:\n", round + 1);
-        printf(1, "  Throughput: %d\n", metrics.throughput);
-        printf(1, "  IO Latency: %d\n", metrics.io_latency);
-        printf(1, "  Memory Overhead: %d\n", metrics.memory_overhead);
-        printf(1, "  System Performance: %d\n", metrics.system_perf);
+        printf("Round %d Results:\n", round + 1);
+        printf("  Throughput: %d\n", metrics.throughput);
+        printf("  IO Latency: %d\n", metrics.io_latency);
+        printf("  Memory Overhead: %d\n", metrics.memory_overhead);
+        printf("  System Performance: %d\n", metrics.system_perf);
     }
 }
 
