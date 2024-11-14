@@ -7,11 +7,11 @@
 
 // Define a simplified Metrics struct for essential data
 typedef struct {
-    int throughput;
-    int process_justice;
-    int fs_efficiency;
-    int memory_overhead;
-    int system_performance;
+    float throughput;
+    float process_justice;
+    float fs_efficiency;
+    float memory_overhead;
+    float system_performance;
 } Metrics;
 
 Metrics collect_metrics(int cpu_count, int io_count) {
@@ -21,9 +21,18 @@ Metrics collect_metrics(int cpu_count, int io_count) {
     int processes_completed = 0;
     int pid;
     int status;
-    int total_exec_time = 0; // For fairness calculation
-    int io_operations = 0;   // Counter for filesystem efficiency
-    int memory_usage = 0;    // Simple counter for memory overhead
+
+    int total_exec_time = 0;   // For process justice calculation
+    int sum_exec_time_sq = 0;  // Sum of squared execution times
+    int io_write_time = 0;     // Simulated time for write operations
+    int io_read_time = 0;      // Simulated time for read operations
+    int io_delete_time = 0;    // Simulated time for delete operations
+    int memory_access_time = 0; // Simulated time for memory access
+    int memory_alloc_time = 0; // Simulated time for memory allocation
+    int memory_free_time = 0;  // Simulated time for memory freeing
+
+    int min_throughput = 1;    // T_putmin (assumed minimum)
+    int max_throughput = 100;  // T_putmax (assumed maximum)
 
     // Fork CPU-bound processes
     for (int i = 0; i < cpu_count; i++) {
@@ -35,7 +44,9 @@ Metrics collect_metrics(int cpu_count, int io_count) {
         } else if (pid > 0) {
             wait(&status);
             int proc_end_time = uptime();
-            total_exec_time += (proc_end_time - proc_start_time);
+            int exec_time = proc_end_time - proc_start_time;
+            total_exec_time += exec_time;
+            sum_exec_time_sq += exec_time * exec_time;
             processes_completed++;
         }
     }
@@ -50,29 +61,54 @@ Metrics collect_metrics(int cpu_count, int io_count) {
         } else if (pid > 0) {
             wait(&status);
             int proc_end_time = uptime();
-            total_exec_time += (proc_end_time - proc_start_time);
-            io_operations += 2;  // Assume two I/O actions per IO-bound process
+            int exec_time = proc_end_time - proc_start_time;
+            total_exec_time += exec_time;
+            sum_exec_time_sq += exec_time * exec_time;
+
+            // Simulate IO times for filesystem efficiency
+            io_write_time += 2;  // Simulated write time
+            io_read_time += 1;   // Simulated read time
+            io_delete_time += 1; // Simulated delete time
+
             processes_completed++;
         }
     }
 
     end_time = uptime();
+    int total_time = end_time - start_time;
 
-    // Throughput: completed processes per unit time
-    metrics.throughput = (processes_completed * 100) / (end_time - start_time);
+    // Throughput calculation based on normalized throughput formula
+    float avg_throughput = (float)processes_completed / total_time;
+    metrics.throughput = (avg_throughput - min_throughput) / (max_throughput - min_throughput);
 
-    // Process Justice: simple variance based on execution time
-    metrics.process_justice = total_exec_time / processes_completed;
+    // Process Justice (J_cpu) calculation
+    int N = processes_completed;
+    if (N > 0) {
+        int total_exec_time_sq = total_exec_time * total_exec_time;
+        metrics.process_justice = (float)total_exec_time_sq / (N * sum_exec_time_sq);
+    } else {
+        metrics.process_justice = 0;
+    }
 
-    // Filesystem Efficiency: proxy based on number of I/O operations
-    metrics.fs_efficiency = io_operations;
+    // Filesystem Efficiency (E_fs) calculation
+    int total_fs_time = io_write_time + io_read_time + io_delete_time;
+    if (total_fs_time > 0) {
+        metrics.fs_efficiency = 1.0 / total_fs_time;
+    } else {
+        metrics.fs_efficiency = 0;
+    }
 
-    // Memory Overhead: use total runtime as a simple approximation
-    memory_usage = (end_time - start_time) / (cpu_count + io_count);
-    metrics.memory_overhead = memory_usage;
+    // Memory Overhead (M_over) calculation
+    int total_memory_time = memory_access_time + memory_alloc_time + memory_free_time;
+    if (total_memory_time > 0) {
+        metrics.memory_overhead = 1.0 / total_memory_time;
+    } else {
+        metrics.memory_overhead = 0;
+    }
 
-    // Overall System Performance: simple average of normalized metrics
-    metrics.system_performance = (metrics.throughput + metrics.process_justice + metrics.fs_efficiency + metrics.memory_overhead) / 4;
+    // System Performance (S_perfom) as the average of all four normalized metrics
+    metrics.system_performance = (metrics.throughput + metrics.process_justice +
+                                  metrics.fs_efficiency + metrics.memory_overhead) / 4;
 
     return metrics;
 }
