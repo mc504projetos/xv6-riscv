@@ -5,62 +5,80 @@
 
 #define NUM_ROUNDS 30
 
+// Define a simplified Metrics struct for essential data
 typedef struct {
     int throughput;
-    int io_latency;
+    int process_justice;
+    int fs_efficiency;
     int memory_overhead;
-    int system_perf;
+    int system_performance;
 } Metrics;
 
 Metrics collect_metrics(int cpu_count, int io_count) {
     Metrics metrics;
     int start_time = uptime();
+    int end_time;
     int processes_completed = 0;
     int pid;
     int status;
+    int total_exec_time = 0; // For fairness calculation
+    int io_operations = 0;   // Counter for filesystem efficiency
+    int memory_usage = 0;    // Simple counter for memory overhead
 
     // Fork CPU-bound processes
     for (int i = 0; i < cpu_count; i++) {
+        int proc_start_time = uptime();
         pid = fork();
         if (pid == 0) {
             exec("cpu_bound", 0);
             exit(0);
+        } else if (pid > 0) {
+            wait(&status);
+            int proc_end_time = uptime();
+            total_exec_time += (proc_end_time - proc_start_time);
+            processes_completed++;
         }
     }
 
     // Fork IO-bound processes
     for (int i = 0; i < io_count; i++) {
+        int proc_start_time = uptime();
         pid = fork();
         if (pid == 0) {
             exec("io_bound", 0);
             exit(0);
+        } else if (pid > 0) {
+            wait(&status);
+            int proc_end_time = uptime();
+            total_exec_time += (proc_end_time - proc_start_time);
+            io_operations += 2;  // Assume two I/O actions per IO-bound process
+            processes_completed++;
         }
     }
 
-    // Wait for processes and measure performance
-    int total_latency = 0;
-    for (int i = 0; i < cpu_count + io_count; i++) {
-        wait(&status);
-        processes_completed++;
-    }
-    int end_time = uptime();
+    end_time = uptime();
 
-    // Metrics calculations
+    // Throughput: completed processes per unit time
     metrics.throughput = (processes_completed * 100) / (end_time - start_time);
-    metrics.io_latency = total_latency / io_count;  // Simulated average latency
-    metrics.memory_overhead = (end_time - start_time) / (cpu_count + io_count);
-    metrics.system_perf = (metrics.throughput + metrics.io_latency + metrics.memory_overhead) / 3;
+
+    // Process Justice: simple variance based on execution time
+    metrics.process_justice = total_exec_time / processes_completed;
+
+    // Filesystem Efficiency: proxy based on number of I/O operations
+    metrics.fs_efficiency = io_operations;
+
+    // Memory Overhead: use total runtime as a simple approximation
+    memory_usage = (end_time - start_time) / (cpu_count + io_count);
+    metrics.memory_overhead = memory_usage;
+
+    // Overall System Performance: simple average of normalized metrics
+    metrics.system_performance = (metrics.throughput + metrics.process_justice + metrics.fs_efficiency + metrics.memory_overhead) / 4;
 
     return metrics;
 }
 
 // Define the seed for our simple pseudo-random number generator
-static unsigned int seed = 1;
-
-// Set the seed for random number generation
-void srand(unsigned int s) {
-    seed = s;
-}
+static unsigned int seed = 3;
 
 // Generate a pseudo-random number
 int rand() {
@@ -77,11 +95,14 @@ void run_experiment() {
 
         Metrics metrics = collect_metrics(cpu_count, io_count);
 
-        printf("Round %d Results:\n", round + 1);
-        printf("  Throughput: %d\n", metrics.throughput);
-        printf("  IO Latency: %d\n", metrics.io_latency);
-        printf("  Memory Overhead: %d\n", metrics.memory_overhead);
-        printf("  System Performance: %d\n", metrics.system_perf);
+        // Display metrics for current round
+        printf("Metrics:\n");
+        printf("Throughput: %d\n", metrics.throughput);
+        printf("Process Justice: %d\n", metrics.process_justice);
+        printf("Filesystem Efficiency: %d\n", metrics.fs_efficiency);
+        printf("Memory Overhead: %d\n", metrics.memory_overhead);
+        printf("System Performance: %d\n", metrics.system_performance);
+        printf("\n");
     }
 }
 

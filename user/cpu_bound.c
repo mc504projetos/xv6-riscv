@@ -9,11 +9,6 @@
 // Define the seed for our simple pseudo-random number generator
 static unsigned int seed = 1;
 
-// Set the seed for random number generation
-void srand(unsigned int s) {
-    seed = s;
-}
-
 // Generate a pseudo-random number
 int rand() {
     seed = seed * 1664525 + 1013904223;

@@ -8,12 +8,7 @@
 #define LINE_LENGTH 100
 
 // Define the seed for our simple pseudo-random number generator
-static unsigned int seed = 1;
-
-// Set the seed for random number generation
-void srand(unsigned int s) {
-    seed = s;
-}
+static unsigned int seed = 2;
 
 // Generate a pseudo-random number
 int rand() {
