@@ -15,7 +15,7 @@ int rand() {
     return (seed & 0x7FFFFFFF);  // Return a non-negative integer
 }
 
-void initialize_graph(int graph[N_VERTICES][N_VERTICES]) {
+void initialize_graph(int **graph) {
     for (int i = 0; i < N_VERTICES; i++) {
         for (int j = 0; j < N_VERTICES; j++) {
             graph[i][j] = (i != j) ? (rand() % 20 + 1) : INFINITY;
@@ -23,7 +23,7 @@ void initialize_graph(int graph[N_VERTICES][N_VERTICES]) {
     }
 }
 
-void dijkstra(int graph[N_VERTICES][N_VERTICES], int start) {
+void dijkstra(int **graph, int start) {
     int dist[N_VERTICES];
     int visited[N_VERTICES] = {0};
 
@@ -45,8 +45,20 @@ void dijkstra(int graph[N_VERTICES][N_VERTICES], int start) {
 }
 
 int main() {
-    int graph[N_VERTICES][N_VERTICES];
+    // Allocate a 2D array dynamically
+    int **graph = malloc(N_VERTICES * sizeof(int *));
+    for (int i = 0; i < N_VERTICES; i++) {
+        graph[i] = malloc(N_VERTICES * sizeof(int));
+    }
+
     initialize_graph(graph);
-    dijkstra(graph, 0);  // Run Dijkstra's from node 0
+    dijkstra(graph, 0);
+
+    // Free the dynamically allocated 2D array
+    for (int i = 0; i < N_VERTICES; i++) {
+        free(graph[i]);
+    }
+    free(graph);
+
     exit(0);
 }

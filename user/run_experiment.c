@@ -22,29 +22,28 @@ Metrics collect_metrics(int cpu_count, int io_count) {
     int pid;
     int status;
 
-    int total_exec_time = 0;   // For process justice calculation
-    int sum_exec_time_sq = 0;  // Sum of squared execution times
-    int io_write_time = 0;     // Simulated time for write operations
-    int io_read_time = 0;      // Simulated time for read operations
-    int io_delete_time = 0;    // Simulated time for delete operations
-    int memory_access_time = 0; // Simulated time for memory access
-    int memory_alloc_time = 0; // Simulated time for memory allocation
-    int memory_free_time = 0;  // Simulated time for memory freeing
-
-    int min_throughput = 1;    // T_putmin (assumed minimum)
-    int max_throughput = 100;  // T_putmax (assumed maximum)
+    // Simulated values for operations
+    int proc_start_time = 0;
+    int proc_end_time = 0;
+    int exec_time = 0;
+    int total_exec_time = 0;
+    int sum_exec_time_sq = 0;
+    int io_write_time = 0, io_read_time = 0, io_delete_time = 0;
+    int memory_access_time = 0, memory_alloc_time = 0, memory_free_time = 0;
+    int min_throughput = 1, max_throughput = 100;
 
     // Fork CPU-bound processes
     for (int i = 0; i < cpu_count; i++) {
-        int proc_start_time = uptime();
+        proc_start_time = uptime();
         pid = fork();
         if (pid == 0) {
-            exec("cpu_bound", 0);
+            char *argv[] = {"cpu_bound", 0};
+            exec("cpu_bound", argv);
             exit(0);
         } else if (pid > 0) {
             wait(&status);
-            int proc_end_time = uptime();
-            int exec_time = proc_end_time - proc_start_time;
+            proc_end_time = uptime();
+            exec_time = proc_end_time - proc_start_time;
             total_exec_time += exec_time;
             sum_exec_time_sq += exec_time * exec_time;
             processes_completed++;
@@ -53,22 +52,23 @@ Metrics collect_metrics(int cpu_count, int io_count) {
 
     // Fork IO-bound processes
     for (int i = 0; i < io_count; i++) {
-        int proc_start_time = uptime();
+        proc_start_time = uptime();
         pid = fork();
         if (pid == 0) {
-            exec("io_bound", 0);
+            char *argv[] = {"io_bound", 0};
+            exec("io_bound", argv);
             exit(0);
         } else if (pid > 0) {
             wait(&status);
-            int proc_end_time = uptime();
-            int exec_time = proc_end_time - proc_start_time;
+            proc_end_time = uptime();
+            exec_time = proc_end_time - proc_start_time;
             total_exec_time += exec_time;
             sum_exec_time_sq += exec_time * exec_time;
 
-            // Simulate IO times for filesystem efficiency
-            io_write_time += 2;  // Simulated write time
-            io_read_time += 1;   // Simulated read time
-            io_delete_time += 1; // Simulated delete time
+            // Simulated IO times for filesystem efficiency
+            io_write_time += 2;
+            io_read_time += 1;
+            io_delete_time += 1;
 
             processes_completed++;
         }
@@ -78,33 +78,33 @@ Metrics collect_metrics(int cpu_count, int io_count) {
     int total_time = end_time - start_time;
 
     // Throughput calculation based on normalized throughput formula
-    float avg_throughput = (float)processes_completed / total_time;
-    metrics.throughput = (avg_throughput - min_throughput) / (max_throughput - min_throughput);
+    if (total_time > 0) {
+        float avg_throughput = (float)processes_completed / total_time;
+        metrics.throughput = 1 - (avg_throughput - min_throughput) / (max_throughput - min_throughput);
+    } else 
+        metrics.throughput = 0;
 
     // Process Justice (J_cpu) calculation
     int N = processes_completed;
-    if (N > 0) {
+    if (N > 0 && sum_exec_time_sq > 0) {
         int total_exec_time_sq = total_exec_time * total_exec_time;
         metrics.process_justice = (float)total_exec_time_sq / (N * sum_exec_time_sq);
-    } else {
+    } else
         metrics.process_justice = 0;
-    }
 
     // Filesystem Efficiency (E_fs) calculation
     int total_fs_time = io_write_time + io_read_time + io_delete_time;
     if (total_fs_time > 0) {
         metrics.fs_efficiency = 1.0 / total_fs_time;
-    } else {
+    } else
         metrics.fs_efficiency = 0;
-    }
 
     // Memory Overhead (M_over) calculation
     int total_memory_time = memory_access_time + memory_alloc_time + memory_free_time;
     if (total_memory_time > 0) {
         metrics.memory_overhead = 1.0 / total_memory_time;
-    } else {
+    } else
         metrics.memory_overhead = 0;
-    }
 
     // System Performance (S_perfom) as the average of all four normalized metrics
     metrics.system_performance = (metrics.throughput + metrics.process_justice +
@@ -113,12 +113,10 @@ Metrics collect_metrics(int cpu_count, int io_count) {
     return metrics;
 }
 
-// Define the seed for our simple pseudo-random number generator
+// Simple pseudo-random number generator
 static unsigned int seed = 3;
-
-// Generate a pseudo-random number
 int rand() {
-    seed = seed * 1664525 + 1013904223;
+    seed = seed * 1103515245 + 12345;
     return (seed & 0x7FFFFFFF);  // Return a non-negative integer
 }
 
@@ -127,17 +125,16 @@ void run_experiment() {
         int cpu_count = 6 + rand() % 9;
         int io_count = 20 - cpu_count;
 
-        printf("Starting round %d: CPU-bound=%d, IO-bound=%d\n", round + 1, cpu_count, io_count);
-
         Metrics metrics = collect_metrics(cpu_count, io_count);
 
         // Display metrics for current round
-        printf("Metrics:\n");
-        printf("Throughput: %d\n", metrics.throughput);
-        printf("Process Justice: %d\n", metrics.process_justice);
-        printf("Filesystem Efficiency: %d\n", metrics.fs_efficiency);
-        printf("Memory Overhead: %d\n", metrics.memory_overhead);
-        printf("System Performance: %d\n", metrics.system_performance);
+        printf("Starting round %d: CPU-bound=%d, IO-bound=%d\n", round + 1, cpu_count, io_count);
+        printf("========= Metrics ========\n");
+        printf("Throughput: %.2f\n", metrics.throughput);
+        printf("Process Justice: %.2f\n", metrics.process_justice);
+        printf("Filesystem Efficiency: %.2f\n", metrics.fs_efficiency);
+        printf("Memory Overhead: %.2f\n", metrics.memory_overhead);
+        printf("System Performance: %.2f\n", metrics.system_performance);
         printf("\n");
     }
 }
