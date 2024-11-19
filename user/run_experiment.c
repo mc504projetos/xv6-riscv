@@ -95,14 +95,9 @@ Metrics collect_metrics(int cpu_count, int io_count) {
     }
 
     // System Performance
-    metrics.system_performance = 
-        0.25 * metrics.throughput + 
-        0.25 * metrics.process_justice + 
-        0.25 * metrics.fs_efficiency + 
-        0.25 * metrics.memory_overhead;
+    metrics.system_performance = (metrics.throughput + metrics.process_justice
+     + metrics.fs_efficiency + metrics.memory_overhead) / 4;
     metrics.system_performance *= 1000;
-
-    printf("%d\n", metrics.memory_overhead);
 
     return metrics;
 }
