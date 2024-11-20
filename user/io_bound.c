@@ -97,16 +97,7 @@ void shuffle_lines(const char *filename) {
 
 // Log metrics into raw_data.txt
 void log_metrics(int write_time, int read_time, int delete_time) {
-    int fd = open("raw_data.txt", O_RDWR | O_APPEND);  // Use O_APPEND flag to append to the file
-    // if (fd < 0) {
-    //     fd = open("raw_data.txt", O_CREATE | O_WRONLY | O_APPEND);  // Create and append if file doesn't exist
-    // }
-
-    // Use fprintf to log the metrics
-    fprintf(fd, "%d %d %d\n", write_time, read_time, delete_time);
-    close(fd);
-
-    // print_file_content("raw_data.txt");
+    printf("%d %d %d\n", write_time, read_time, delete_time);
 }
 
 int main() {

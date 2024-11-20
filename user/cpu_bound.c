@@ -57,16 +57,7 @@ void dijkstra(int **graph, int vertices, int start) {
 }
 
 void log_metrics(int alloc_time, int access_time, int free_time) {
-    int fd = open("raw_data.txt", O_RDWR | O_APPEND);  // Use O_APPEND flag to append to the file
-    // if (fd < 0) {
-    //     fd = open("raw_data.txt", O_CREATE | O_WRONLY | O_APPEND);  // Create and append if file doesn't exist
-    // }
-
-    // Use fprintf to log formatted metrics to the file
-    fprintf(fd, "%d %d %d\n", alloc_time, access_time, free_time);
-
-
-    close(fd);
+    printf("%d %d %d\n", alloc_time, access_time, free_time);
 }
 
 int main() {

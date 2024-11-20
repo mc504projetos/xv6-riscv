@@ -24,9 +24,7 @@ typedef struct {
     int io_delete_time;
 } MemFS;
 
-MemFS parse_and_calculate_metrics(int cpu_count, int io_count) {
-    int fd = open("raw_data.txt", O_RDONLY);
-
+MemFS parse_and_calculate_metrics(int fd, int cpu_count, int io_count) {
     char line[LINE_BUFFER_SIZE];
     int line_index = 0;
 
@@ -70,8 +68,6 @@ MemFS parse_and_calculate_metrics(int cpu_count, int io_count) {
         }
     }
 
-    close(fd);
-
     // Populate the MemFS struct with collected metrics
     MemFS time_values;
     time_values.memory_alloc_time = mem_alloc_time;
@@ -91,13 +87,16 @@ Metrics collect_metrics(int cpu_count, int io_count) {
     int start_time = uptime();
 
     // Create file
-    int fd = open("raw_data.txt", O_CREATE);
+    int fd = open("raw_data.txt", O_RDWR | O_CREATE | O_APPEND);
 
     // Fork CPU-bound processes
     for (int i = 0; i < cpu_count; i++) {
         int proc_start_time = uptime();
         pid = fork();
         if (pid == 0) {
+            // Pass the file descriptor to the child process
+            close(1);  // Close the standard output if not used
+            dup(fd);   // Duplicate the file descriptor for writing
             exec("cpu_bound", 0);
             exit(0);
         } else if (pid > 0) {
@@ -115,6 +114,9 @@ Metrics collect_metrics(int cpu_count, int io_count) {
         int proc_start_time = uptime();
         pid = fork();
         if (pid == 0) {
+            // Pass the file descriptor to the child process
+            close(1);  // Close the standard output if not used
+            dup(fd);   // Duplicate the file descriptor for writing
             exec("io_bound", 0);
             exit(0);
         } else if (pid > 0) {
@@ -130,9 +132,10 @@ Metrics collect_metrics(int cpu_count, int io_count) {
     int end_time = uptime();
     int total_time = end_time - start_time;
 
-    MemFS t = parse_and_calculate_metrics(cpu_count, io_count);
+    MemFS t = parse_and_calculate_metrics(fd, cpu_count, io_count);
 
-    // Delete file
+    // Close and delete file
+    close(fd);
     unlink("raw_data.txt");
 
     Metrics metrics = {0};
