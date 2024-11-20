@@ -71,17 +71,42 @@ void shuffle_lines(const char *filename) {
     close(fd);
 }
 
+// void print_file_content(const char *filename) {
+//     int fd = open(filename, O_RDONLY);
+//     if (fd < 0) {
+//         printf("Error: Could not open file %s\n", filename);
+//         return;
+//     }
+
+//     char buf[512]; // Buffer size for reading chunks
+//     int n;
+
+//     while ((n = read(fd, buf, sizeof(buf))) > 0) {
+//         write(1, buf, n); // Write to stdout (file descriptor 1)
+//     }
+
+//     if (n < 0) {
+//         printf("Error: Failed to read file %s\n", filename);
+//     }
+
+//     printf("raw_data.txt foi impresso!\n");
+
+//     close(fd);
+// }
+
+
 // Log metrics into raw_data.txt
 void log_metrics(int write_time, int read_time, int delete_time) {
     int fd = open("raw_data.txt", O_RDWR | O_APPEND);  // Use O_APPEND flag to append to the file
-    if (fd < 0) {
-        fd = open("raw_data.txt", O_CREATE | O_WRONLY | O_APPEND);  // Create and append if file doesn't exist
-    }
+    // if (fd < 0) {
+    //     fd = open("raw_data.txt", O_CREATE | O_WRONLY | O_APPEND);  // Create and append if file doesn't exist
+    // }
 
     // Use fprintf to log the metrics
-    fprintf(fd, "%d ticks %d ticks %d ticks (io_bound)\n", write_time, read_time, delete_time);
-
+    fprintf(fd, "%d %d %d\n", write_time, read_time, delete_time);
     close(fd);
+
+    // print_file_content("raw_data.txt");
 }
 
 int main() {
