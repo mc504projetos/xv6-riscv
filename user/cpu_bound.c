@@ -1,6 +1,8 @@
+// cpu_bound.c
 #include "kernel/types.h"
 #include "kernel/stat.h"
 #include "user/user.h"
+#include "kernel/fcntl.h"
 
 #define MAX_VERTICES 200
 #define MIN_VERTICES 100
@@ -55,6 +57,29 @@ void dijkstra(int **graph, int vertices, int start) {
     }
 }
 
+void log_metrics(int alloc_time, int access_time, int free_time) {
+    int fd = open("raw_data.txt", O_RDWR);
+    if (fd < 0) {
+        fd = open("raw_data.txt", O_CREATE | O_WRONLY);
+    }
+
+    // Find the end of the file
+    int file_size = 0;
+    char temp_buf[1];
+    while (read(fd, temp_buf, 1) > 0) {
+        file_size++;
+    }
+
+    // Move the file descriptor to the end
+    lseek(fd, file_size, 0);
+
+    char buf[100];
+    snprintf(buf, sizeof(buf), "%d ticks %d ticks %d ticks (cpu_bound)\n", 
+             alloc_time, access_time, free_time);
+    write(fd, buf, strlen(buf));
+    close(fd);
+}
+
 int main() {
     int vertices = MIN_VERTICES + rand() % (MAX_VERTICES - MIN_VERTICES + 1);
     int edges = MIN_EDGES + rand() % (MAX_EDGES - MIN_EDGES + 1);
@@ -64,13 +89,22 @@ int main() {
         graph[i] = malloc(vertices * sizeof(int));
     }
 
+    int alloc_time = uptime();
     initialize_graph(graph, vertices, edges);
-    dijkstra(graph, vertices, 0);
+    alloc_time = uptime() - alloc_time;
 
+    int access_time = uptime();
+    dijkstra(graph, vertices, 0);
+    access_time = uptime() - access_time;
+
+    int free_time = uptime();
     for (int i = 0; i < vertices; i++) {
         free(graph[i]);
     }
     free(graph);
+    free_time = uptime() - free_time;
+
+    log_metrics(alloc_time, access_time, free_time);
 
     exit(0);
 }
