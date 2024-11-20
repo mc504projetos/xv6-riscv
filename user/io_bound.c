@@ -1,4 +1,3 @@
-// io_bound.c
 #include "kernel/types.h"
 #include "kernel/stat.h"
 #include "kernel/fcntl.h"
@@ -53,19 +52,19 @@ void shuffle_lines(const char *filename) {
         int pos2 = indices[LINE_COUNT - i - 1];
 
         // Read first line
-        lseek(fd, pos1 * LINE_LENGTH, 0);
         read(fd, line1, LINE_LENGTH);
+        // Skip to the next line (assuming lines are of fixed length)
+        for (int j = 1; j < pos1; j++) read(fd, line1, LINE_LENGTH);
 
         // Read second line
-        lseek(fd, pos2 * LINE_LENGTH, 0);
         read(fd, line2, LINE_LENGTH);
+        // Skip to the next line
+        for (int j = 1; j < pos2; j++) read(fd, line2, LINE_LENGTH);
 
         // Write second line to the first line's position
-        lseek(fd, pos1 * LINE_LENGTH, 0);
         write(fd, line2, LINE_LENGTH);
 
         // Write first line to the second line's position
-        lseek(fd, pos2 * LINE_LENGTH, 0);
         write(fd, line1, LINE_LENGTH);
     }
 
@@ -74,25 +73,14 @@ void shuffle_lines(const char *filename) {
 
 // Log metrics into raw_data.txt
 void log_metrics(int write_time, int read_time, int delete_time) {
-    int fd = open("raw_data.txt", O_RDWR);
+    int fd = open("raw_data.txt", O_RDWR | O_APPEND);  // Use O_APPEND flag to append to the file
     if (fd < 0) {
-        fd = open("raw_data.txt", O_CREATE | O_WRONLY);
+        fd = open("raw_data.txt", O_CREATE | O_WRONLY | O_APPEND);  // Create and append if file doesn't exist
     }
 
-    // Find the end of the file
-    int file_size = 0;
-    char temp_buf[1];
-    while (read(fd, temp_buf, 1) > 0) {
-        file_size++;
-    }
+    // Use fprintf to log the metrics
+    fprintf(fd, "%d ticks %d ticks %d ticks (io_bound)\n", write_time, read_time, delete_time);
 
-    // Move the file descriptor to the end
-    lseek(fd, file_size, 0);
-
-    char buf[100];
-    snprintf(buf, sizeof(buf), "%d ticks %d ticks %d ticks (io_bound)\n", 
-             write_time, read_time, delete_time);
-    write(fd, buf, strlen(buf));
     close(fd);
 }
 
@@ -102,7 +90,7 @@ int main() {
 
     // Write lines to file
     int write_time = uptime();
-    int fd = open(filename, O_CREATE | O_WRONLY);
+    int fd = open(filename, O_CREATE | O_WRONLY | O_APPEND);  // Open with O_APPEND to append to the end of the file
     for (int i = 0; i < LINE_COUNT; i++) {
         generate_random_line(line);
         write(fd, line, LINE_LENGTH);

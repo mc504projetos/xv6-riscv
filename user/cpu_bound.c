@@ -1,4 +1,3 @@
-// cpu_bound.c
 #include "kernel/types.h"
 #include "kernel/stat.h"
 #include "user/user.h"
@@ -58,25 +57,16 @@ void dijkstra(int **graph, int vertices, int start) {
 }
 
 void log_metrics(int alloc_time, int access_time, int free_time) {
-    int fd = open("raw_data.txt", O_RDWR);
+    // Open the file in append mode
+    int fd = open("raw_data.txt", O_CREATE | O_WRONLY | O_APPEND);  // O_APPEND ensures writing at the end of file
     if (fd < 0) {
-        fd = open("raw_data.txt", O_CREATE | O_WRONLY);
+        printf("Error: Could not open file\n");
+        exit(1);
     }
 
-    // Find the end of the file
-    int file_size = 0;
-    char temp_buf[1];
-    while (read(fd, temp_buf, 1) > 0) {
-        file_size++;
-    }
+    // Use fprintf to log formatted metrics to the file
+    fprintf(fd, "%d ticks %d ticks %d ticks (cpu_bound)\n", alloc_time, access_time, free_time);
 
-    // Move the file descriptor to the end
-    lseek(fd, file_size, 0);
-
-    char buf[100];
-    snprintf(buf, sizeof(buf), "%d ticks %d ticks %d ticks (cpu_bound)\n", 
-             alloc_time, access_time, free_time);
-    write(fd, buf, strlen(buf));
     close(fd);
 }
 
@@ -89,14 +79,17 @@ int main() {
         graph[i] = malloc(vertices * sizeof(int));
     }
 
+    // Measure allocation time
     int alloc_time = uptime();
     initialize_graph(graph, vertices, edges);
     alloc_time = uptime() - alloc_time;
 
+    // Measure access time for Dijkstra
     int access_time = uptime();
     dijkstra(graph, vertices, 0);
     access_time = uptime() - access_time;
 
+    // Measure free time
     int free_time = uptime();
     for (int i = 0; i < vertices; i++) {
         free(graph[i]);
@@ -104,6 +97,7 @@ int main() {
     free(graph);
     free_time = uptime() - free_time;
 
+    // Log metrics to file
     log_metrics(alloc_time, access_time, free_time);
 
     exit(0);

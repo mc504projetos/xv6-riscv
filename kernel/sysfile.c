@@ -310,12 +310,15 @@ sys_open(void)
   struct inode *ip;
   int n;
 
+  // Get the file mode (read/write flags) and file path
   argint(1, &omode);
   if((n = argstr(0, path, MAXPATH)) < 0)
     return -1;
 
+  // Begin an operation, lock filesystem
   begin_op();
 
+  // If O_CREATE is set, create the file
   if(omode & O_CREATE){
     ip = create(path, T_FILE, 0, 0);
     if(ip == 0){
@@ -323,11 +326,14 @@ sys_open(void)
       return -1;
     }
   } else {
+    // Otherwise, try to find the file
     if((ip = namei(path)) == 0){
       end_op();
       return -1;
     }
-    ilock(ip);
+    ilock(ip);  // Lock the inode for reading/writing
+
+    // Ensure that a directory cannot be opened for writing
     if(ip->type == T_DIR && omode != O_RDONLY){
       iunlockput(ip);
       end_op();
@@ -335,12 +341,14 @@ sys_open(void)
     }
   }
 
+  // Ensure the inode type is valid (not a device with invalid major number)
   if(ip->type == T_DEVICE && (ip->major < 0 || ip->major >= NDEV)){
     iunlockput(ip);
     end_op();
     return -1;
   }
 
+  // Allocate a new file structure
   if((f = filealloc()) == 0 || (fd = fdalloc(f)) < 0){
     if(f)
       fileclose(f);
@@ -349,24 +357,34 @@ sys_open(void)
     return -1;
   }
 
+  // Set the file type and assign the inode
   if(ip->type == T_DEVICE){
     f->type = FD_DEVICE;
     f->major = ip->major;
   } else {
     f->type = FD_INODE;
-    f->off = 0;
+    // Set the file offset to 0 by default, unless O_APPEND is set
+    if(omode & O_APPEND) {
+      f->off = ip->size;  // Set the offset to the current file size (append mode)
+    } else {
+      f->off = 0;  // Default offset for regular reads/writes
+    }
   }
+
   f->ip = ip;
   f->readable = !(omode & O_WRONLY);
   f->writable = (omode & O_WRONLY) || (omode & O_RDWR);
 
+  // If O_TRUNC is set, truncate the file
   if((omode & O_TRUNC) && ip->type == T_FILE){
     itrunc(ip);
   }
 
+  // Unlock the inode and finish the operation
   iunlock(ip);
   end_op();
 
+  // Return the file descriptor
   return fd;
 }
 
