@@ -57,22 +57,32 @@ void dijkstra(int **graph, int vertices, int start) {
 }
 
 void log_metrics(int alloc_time, int access_time, int free_time) {
-    printf("%d %d %d\n", alloc_time, access_time, free_time);
+    const char *filename = "raw_data.txt";
+    int fd = open(filename, O_RDWR | O_APPEND);  // Use O_APPEND flag to append to the file
+    if (fd < 0) {
+        fd = open(filename, O_CREATE | O_WRONLY | O_APPEND);  // Create and append if file doesn't exist
+    }
+
+    // Use fprintf to log formatted metrics to the file
+    fprintf(fd, "%d %d %d\n", alloc_time, access_time, free_time);
+
+    close(fd);
 }
 
 int main() {
     int vertices = MIN_VERTICES + rand() % (MAX_VERTICES - MIN_VERTICES + 1);
     int edges = MIN_EDGES + rand() % (MAX_EDGES - MIN_EDGES + 1);
 
+    // Measure allocation time
+    int alloc_time = uptime();
     int **graph = malloc(vertices * sizeof(int *));
     for (int i = 0; i < vertices; i++) {
         graph[i] = malloc(vertices * sizeof(int));
     }
-
-    // Measure allocation time
-    int alloc_time = uptime();
-    initialize_graph(graph, vertices, edges);
     alloc_time = uptime() - alloc_time;
+
+    // Start graph
+    initialize_graph(graph, vertices, edges);
 
     // Measure access time for Dijkstra
     int access_time = uptime();

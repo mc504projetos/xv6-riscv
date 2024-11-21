@@ -71,33 +71,18 @@ void shuffle_lines(const char *filename) {
     close(fd);
 }
 
-// void print_file_content(const char *filename) {
-//     int fd = open(filename, O_RDONLY);
-//     if (fd < 0) {
-//         printf("Error: Could not open file %s\n", filename);
-//         return;
-//     }
-
-//     char buf[512]; // Buffer size for reading chunks
-//     int n;
-
-//     while ((n = read(fd, buf, sizeof(buf))) > 0) {
-//         write(1, buf, n); // Write to stdout (file descriptor 1)
-//     }
-
-//     if (n < 0) {
-//         printf("Error: Failed to read file %s\n", filename);
-//     }
-
-//     printf("raw_data.txt foi impresso!\n");
-
-//     close(fd);
-// }
-
-
 // Log metrics into raw_data.txt
 void log_metrics(int write_time, int read_time, int delete_time) {
-    printf("%d %d %d\n", write_time, read_time, delete_time);
+    const char *filename = "raw_data.txt";
+    int fd = open(filename, O_RDWR | O_APPEND);  // Use O_APPEND flag to append to the file
+    if (fd < 0) {
+        fd = open(filename, O_CREATE | O_WRONLY | O_APPEND);  // Create and append if file doesn't exist
+    }
+
+    // Use fprintf to log the metrics
+    fprintf(fd, "%d %d %d\n", write_time, read_time, delete_time);
+
+    close(fd);
 }
 
 int main() {
@@ -124,9 +109,7 @@ int main() {
     read_time = uptime() - read_time;
 
     // Shuffle lines in the file
-    int shuffle_time = uptime();
     shuffle_lines(filename);
-    shuffle_time = uptime() - shuffle_time;
 
     // Delete the file
     int delete_time = uptime();
@@ -134,7 +117,7 @@ int main() {
     delete_time = uptime() - delete_time;
 
     // Log the metrics
-    log_metrics(write_time, read_time + shuffle_time, delete_time);
+    log_metrics(write_time, read_time, delete_time);
 
     exit(0);
 }
