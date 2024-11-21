@@ -84,9 +84,6 @@ MemFS parse_and_calculate_metrics(int cpu_count, int io_count) {
     time_values.io_read_time = io_read_time;
     time_values.io_delete_time = io_delete_time;
 
-    // printf("%d %d %d\n", mem_alloc_time, mem_access_time, mem_free_time);
-    // printf("%d %d %d\n", io_write_time, io_read_time, io_delete_time);
-
     return time_values;
 }
 
@@ -149,13 +146,13 @@ Metrics collect_metrics(int cpu_count, int io_count) {
 
     // Throughput
     if (total_time > 0) {
-        metrics.throughput = (processes_completed / total_time) * 1000;  // First divide, then multiply
+        metrics.throughput = (1000 * processes_completed) / total_time;
     }
 
     // Process Justice
     if (processes_completed > 0 && sum_exec_time_sq > 0) {
-        metrics.process_justice = ((total_exec_time * total_exec_time) / 
-        (processes_completed * sum_exec_time_sq)) * 1000;  // First divide, then multiply
+        metrics.process_justice = (1000 * total_exec_time * total_exec_time) / 
+        (processes_completed * sum_exec_time_sq);
     }
 
     // Filesystem Efficiency

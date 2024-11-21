@@ -23,7 +23,7 @@ void generate_random_line(char *line) {
 }
 
 // Shuffle lines in the file
-void shuffle_lines(const char *filename) {
+void shuffle_lines(const char *filename, int *p_write_time, int *p_read_time) {
     int fd = open(filename, O_RDWR);
     if (fd < 0) {
         printf("Error: Could not open file for shuffling\n");
@@ -51,21 +51,23 @@ void shuffle_lines(const char *filename) {
         int pos1 = indices[i];
         int pos2 = indices[LINE_COUNT - i - 1];
 
+        int aux = uptime();
         // Read first line
         read(fd, line1, LINE_LENGTH);
         // Skip to the next line (assuming lines are of fixed length)
         for (int j = 1; j < pos1; j++) read(fd, line1, LINE_LENGTH);
-
         // Read second line
         read(fd, line2, LINE_LENGTH);
         // Skip to the next line
         for (int j = 1; j < pos2; j++) read(fd, line2, LINE_LENGTH);
+        *p_read_time += uptime() - aux;
 
+        aux = uptime();
         // Write second line to the first line's position
         write(fd, line2, LINE_LENGTH);
-
         // Write first line to the second line's position
         write(fd, line1, LINE_LENGTH);
+        *p_write_time += uptime() - aux;
     }
 
     close(fd);
@@ -99,17 +101,9 @@ int main() {
     close(fd);
     write_time = uptime() - write_time;
 
-    // Read lines from file
-    int read_time = uptime();
-    fd = open(filename, O_RDONLY);
-    for (int i = 0; i < LINE_COUNT; i++) {
-        read(fd, line, LINE_LENGTH);
-    }
-    close(fd);
-    read_time = uptime() - read_time;
-
     // Shuffle lines in the file
-    shuffle_lines(filename);
+    int read_time = 0;
+    shuffle_lines(filename, &write_time, &read_time);
 
     // Delete the file
     int delete_time = uptime();

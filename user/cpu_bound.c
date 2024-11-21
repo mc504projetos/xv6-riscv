@@ -3,6 +3,7 @@
 #include "user/user.h"
 #include "kernel/fcntl.h"
 
+#define N_DIGRAPHS 1000
 #define MAX_VERTICES 200
 #define MIN_VERTICES 100
 #define MAX_EDGES 400
@@ -70,32 +71,39 @@ void log_metrics(int alloc_time, int access_time, int free_time) {
 }
 
 int main() {
-    int vertices = MIN_VERTICES + rand() % (MAX_VERTICES - MIN_VERTICES + 1);
-    int edges = MIN_EDGES + rand() % (MAX_EDGES - MIN_EDGES + 1);
+    int alloc_time, access_time, free_time;
+    alloc_time = access_time = free_time = 0;
+    int aux = 0;
 
-    // Measure allocation time
-    int alloc_time = uptime();
-    int **graph = malloc(vertices * sizeof(int *));
-    for (int i = 0; i < vertices; i++) {
-        graph[i] = malloc(vertices * sizeof(int));
+    for (int j = 0; j < N_DIGRAPHS; j++) {
+        int vertices = MIN_VERTICES + rand() % (MAX_VERTICES - MIN_VERTICES + 1);
+        int edges = MIN_EDGES + rand() % (MAX_EDGES - MIN_EDGES + 1);
+
+        // Measure allocation time
+        aux = uptime();
+        int **graph = malloc(vertices * sizeof(int *));
+        for (int i = 0; i < vertices; i++) {
+            graph[i] = malloc(vertices * sizeof(int));
+        }
+        alloc_time += uptime() - aux;
+
+        // Start graph
+        initialize_graph(graph, vertices, edges);
+
+        // Measure access time for Dijkstra
+        aux = uptime();
+        dijkstra(graph, vertices, 0);
+        access_time += uptime() - aux;
+
+        // Measure free time
+        aux = uptime();
+        for (int i = 0; i < vertices; i++) {
+            free(graph[i]);
+        }
+        free(graph);
+        free_time += uptime() - aux;
+
     }
-    alloc_time = uptime() - alloc_time;
-
-    // Start graph
-    initialize_graph(graph, vertices, edges);
-
-    // Measure access time for Dijkstra
-    int access_time = uptime();
-    dijkstra(graph, vertices, 0);
-    access_time = uptime() - access_time;
-
-    // Measure free time
-    int free_time = uptime();
-    for (int i = 0; i < vertices; i++) {
-        free(graph[i]);
-    }
-    free(graph);
-    free_time = uptime() - free_time;
 
     // Log metrics to file
     log_metrics(alloc_time, access_time, free_time);
