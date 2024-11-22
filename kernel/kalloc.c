@@ -80,3 +80,57 @@ kalloc(void)
     memset((char*)r, 5, PGSIZE); // fill with junk
   return (void*)r;
 }
+
+// Slab Allocation implementation
+
+#define MAX_SLOTS 64    // Maximum slots per slab
+#define OBJECT_SIZE 64  // Example: size of the object (adjust as needed)
+
+// Slab structure
+struct slab {
+    void *slots[MAX_SLOTS];  // Freelist of reusable slots
+    int used_slots;          // Number of used slots
+    struct spinlock lock;    // Lock for thread safety
+};
+
+// Example slab for fixed-size objects
+struct slab object_slab;
+
+// Initialize the slab
+void slab_init() {
+    initlock(&object_slab.lock, "object_slab");
+    object_slab.used_slots = 0;
+}
+
+// Allocate an object from the slab
+void *slab_alloc() {
+    acquire(&object_slab.lock);
+
+    if (object_slab.used_slots > 0) {
+        // Reuse a previously freed slot
+        void *obj = object_slab.slots[--object_slab.used_slots];
+        release(&object_slab.lock);
+        return obj;
+    }
+
+    release(&object_slab.lock);
+
+    // Fallback to general allocator if slab is empty
+    return kalloc();
+}
+
+// Free an object back to the slab
+void slab_free(void *obj) {
+    acquire(&object_slab.lock);
+
+    if (object_slab.used_slots < MAX_SLOTS) {
+        // Add the object back to the freelist
+        object_slab.slots[object_slab.used_slots++] = obj;
+        release(&object_slab.lock);
+    } else {
+        release(&object_slab.lock);
+        // Fallback to general free if slab is full
+        kfree(obj);
+    }
+}
+

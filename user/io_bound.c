@@ -93,7 +93,7 @@ int main() {
 
     // Write lines to file
     int write_time = uptime();
-    int fd = open(filename, O_CREATE | O_WRONLY | O_APPEND);  // Open with O_APPEND to append to the end of the file
+    int fd = open(filename, O_CREATE | O_WRONLY | O_APPEND);
     for (int i = 0; i < LINE_COUNT; i++) {
         generate_random_line(line);
         write(fd, line, LINE_LENGTH);
